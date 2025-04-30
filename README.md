@@ -21,6 +21,8 @@ Player vs Bot
 
 The goal is to build a simple yet interactive game that combines AI pathfinding and real-time competition, offering a fun and educational implementation of the A* algorithm in a visual environment.
 
+-----------------------
+
 3rd Year - CS dep. - Artificial Intelligence Course
 
 Supervised by: Dr. Sara Elmetwally & Eng. Habiba Mohmaed  
