@@ -14,10 +14,11 @@ In AI mode, the bot uses the A* pathfinding algorithm to calculate the shortest 
 
 Python / Pygame / A* Pathfinding Algorithm
 
-🕹️ Game Mode:
+🕹️ Game Mode
+
 Player vs Bot
 
-📌 Project Goal:
+📌 Project Goal
 
 The goal is to build a simple yet interactive game that combines AI pathfinding and real-time competition, offering a fun and educational implementation of the A* algorithm in a visual environment.
 
