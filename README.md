@@ -1,5 +1,6 @@
 # maze-racing-game
 🎮 Maze Race: Player vs Bot
+
 Maze Race is a maze racing game where a human player competes against a smart AI bot. The goal is to reach the end point of the maze before the opponent. The maze is randomly generated and contains static obstacles that block certain paths.
 
 In AI mode, the bot uses the A* pathfinding algorithm to calculate the shortest route to the goal and moves automatically based on those calculations. The human player navigates the maze manually using keyboard controls.
