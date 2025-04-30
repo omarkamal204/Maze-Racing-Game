@@ -1,0 +1,238 @@
+import pygame
+import random
+import heapq
+
+# Initialize Pygame
+pygame.init()
+
+# Constants
+WIDTH, HEIGHT = 600, 600
+ROWS, COLS = 20, 20
+CELL_SIZE = WIDTH // COLS
+FPS = 10
+
+# Colors
+WHITE = (255, 255, 255)
+GRAY = (200, 200, 200)
+BEIGE = (245, 245, 220)  # #F5F5DC
+BLUE = (0, 0, 255)       # #0000FF
+PURPLE = (128, 0, 128)   # #800080
+PINK = (255, 105, 180)   # #FF69B4
+DARK_PURPLE = (75, 0, 130)  # #4B0082
+BLACK = (0, 0, 0)
+
+# Create the window
+win = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Maze Race: Player vs Bot!")
+
+# Load sound
+win_sound = pygame.mixer.Sound(r"c:\Users\LAPTOP WORLD\Downloads\Video\703543__yoshicakes77__win.ogg")
+
+# Directions
+DIRS = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+
+def draw_grid():
+    for x in range(0, WIDTH, CELL_SIZE):
+        pygame.draw.line(win, GRAY, (x, 0), (x, HEIGHT))
+    for y in range(0, HEIGHT, CELL_SIZE):
+        pygame.draw.line(win, GRAY, (0, y), (WIDTH, y))
+
+def random_obstacles(num=50, goal=(COLS-1, ROWS-1)):
+    obstacles = set()
+    while len(obstacles) < num:
+        x = random.randint(0, COLS-1)
+        y = random.randint(0, ROWS-1)
+        if (x, y) not in [(0, 0), goal]:
+            if abs(x - 0) > 1 or abs(y - 0) > 1:
+                if abs(x - (COLS-1)) > 1 or abs(y - (ROWS-1)) > 1:
+                    obstacles.add((x, y))
+    return obstacles
+
+def get_random_goal(exclude_obstacles):
+    while True:
+        goal = (random.randint(0, COLS-1), random.randint(0, ROWS-1))
+        if goal not in exclude_obstacles:
+            return goal
+
+def heuristic(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+def a_star(start, goal, obstacles):
+    heap = []
+    heapq.heappush(heap, (0, start))
+    came_from = {}
+    cost_so_far = {start: 0}
+
+    while heap:
+        _, current = heapq.heappop(heap)
+
+        if current == goal:
+            break
+
+        for dx, dy in DIRS:
+            neighbor = (current[0] + dx, current[1] + dy)
+            if 0 <= neighbor[0] < COLS and 0 <= neighbor[1] < ROWS and neighbor not in obstacles:
+                new_cost = cost_so_far[current] + 1
+                if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
+                    cost_so_far[neighbor] = new_cost
+                    priority = new_cost + heuristic(goal, neighbor)
+                    heapq.heappush(heap, (priority, neighbor))
+                    came_from[neighbor] = current
+
+    path = []
+    node = goal
+    while node != start:
+        if node in came_from:
+            path.append(node)
+            node = came_from[node]
+        else:
+            return []
+    path.reverse()
+    return path
+
+def draw_textbox(win, text, x, y, width, height, active):
+    font = pygame.font.SysFont(None, 40)
+    pygame.draw.rect(win, BLACK, (x, y, width, height), 2)  # Border
+    txt_surface = font.render(text, True, BLACK)
+    win.blit(txt_surface, (x + 5, y + 5))
+    if active:
+        pygame.draw.rect(win, PURPLE, (x, y, width, height), 2)  # Highlight if active
+
+def start_screen():
+    input_active = True
+    player_name = ""
+    while input_active:
+        win.fill(BEIGE)
+        font = pygame.font.SysFont(None, 50)
+        title = font.render("Enter Your Name", True, BLACK)
+        win.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//3))
+
+        draw_textbox(win, player_name, WIDTH//2 - 100, HEIGHT//2, 200, 40, True)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN and player_name:
+                    return player_name
+                elif event.key == pygame.K_BACKSPACE:
+                    player_name = player_name[:-1]
+                else:
+                    if len(player_name) < 20:  # Limit name length
+                        player_name += event.unicode
+
+        pygame.display.update()
+
+def main():
+    clock = pygame.time.Clock()
+    run = True
+
+    player_name = start_screen()  # Get player name from start screen
+    player_pos = [0, 0]
+    bot_pos = [0, 0]
+    obstacles = random_obstacles()
+    goal = get_random_goal(obstacles)
+    bot_path = a_star(tuple(bot_pos), goal, obstacles)
+
+    bot_move_counter = 0
+    bot_move_delay = 3
+
+    start_ticks = pygame.time.get_ticks()
+
+    winner = None
+    player_points = 0
+    bot_points = 0
+
+    while run:
+        clock.tick(FPS)
+
+        seconds = (pygame.time.get_ticks() - start_ticks) // 1000
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            new_pos = (player_pos[0]-1, player_pos[1])
+            if 0 <= new_pos[0] < COLS and new_pos not in obstacles and new_pos != tuple(bot_pos):
+                player_pos[0] -= 1
+        if keys[pygame.K_RIGHT]:
+            new_pos = (player_pos[0]+1, player_pos[1])
+            if 0 <= new_pos[0] < COLS and new_pos not in obstacles and new_pos != tuple(bot_pos):
+                player_pos[0] += 1
+        if keys[pygame.K_UP]:
+            new_pos = (player_pos[0], player_pos[1]-1)
+            if 0 <= new_pos[1] < ROWS and new_pos not in obstacles and new_pos != tuple(bot_pos):
+                player_pos[1] -= 1
+        if keys[pygame.K_DOWN]:
+            new_pos = (player_pos[0], player_pos[1]+1)
+            if 0 <= new_pos[1] < ROWS and new_pos not in obstacles and new_pos != tuple(bot_pos):
+                player_pos[1] += 1
+
+        bot_move_counter += 1
+        if bot_move_counter >= bot_move_delay:
+            if bot_path:
+                next_move = bot_path.pop(0)
+                bot_pos = list(next_move)
+            else:
+                bot_path = a_star(tuple(bot_pos), goal, obstacles)
+            bot_move_counter = 0
+
+        if tuple(player_pos) == goal and not winner:
+            winner = "Player"
+            player_points += 1
+            pygame.mixer.Sound.play(win_sound)
+        if tuple(bot_pos) == goal and not winner:
+            winner = "Bot"
+            bot_points += 1
+            pygame.mixer.Sound.play(win_sound)
+
+        win.fill(BEIGE)
+        draw_grid()
+
+        for obs in obstacles:
+            pygame.draw.rect(win, "#bde0fe", (obs[0]*CELL_SIZE, obs[1]*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+        # Draw goal
+        pygame.draw.rect(win, "#00487C", (goal[0]*CELL_SIZE, goal[1]*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+        # Draw player
+        pygame.draw.rect(win, "#ffafcc", (player_pos[0]*CELL_SIZE, player_pos[1]*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+        # Draw bot
+        pygame.draw.rect(win, "#cdb4db", (bot_pos[0]*CELL_SIZE, bot_pos[1]*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+        font = pygame.font.SysFont(None, 30)
+        timer_text = font.render(f"Time: {seconds}s", True, BLACK)
+        win.blit(timer_text, (10, 10))
+
+        points_text = font.render(f"{player_name}: {player_points}   Bot: {bot_points}", True, BLACK)
+        win.blit(points_text, (WIDTH - points_text.get_width() - 10, 10))
+
+        if winner:
+            font = pygame.font.SysFont(None, 50)
+            if winner == "Player":
+                text = font.render(f"{player_name} Wins!", True, BLACK)
+            else:
+                text = font.render("Bot Wins!", True, BLACK)
+            win.blit(text, (WIDTH//2 - text.get_width()//2, HEIGHT//2 - text.get_height()//2))
+
+            pygame.display.update()
+            pygame.time.delay(2000)
+
+            player_pos = [0, 0]
+            bot_pos = [0, 0]
+            obstacles = random_obstacles()
+            goal = get_random_goal(obstacles)
+            bot_path = a_star(tuple(bot_pos), goal, obstacles)
+            winner = None
+            start_ticks = pygame.time.get_ticks()
+
+        pygame.display.update()
+
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
